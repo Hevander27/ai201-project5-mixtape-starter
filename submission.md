@@ -26,9 +26,9 @@ an *explain / trace / verify* role rather than a *diagnose-for-me* role.
   the buggy `today.weekday() != 6` guard depended on.
 - **Explaining a surprising result.** For Issue #3 the search bug *did not
   reproduce* at first (search returned one row, not three). I asked why, then
-  verified myself: the raw join genuinely returns 3 rows, but **SQLAlchemy
-  2.0's ORM uniquifies full entities** by primary key on `.all()`, masking the
-  duplicates for this specific code path. The AI's first instinct ("just add
+  verified myself: the raw join genuinely returns 3 rows, but **SQLAlchemy's
+  legacy `Query` API uniquifies full entities** by primary key on `.all()`,
+  masking the duplicates for this specific code path. The AI's first instinct ("just add
   `.distinct()`") was *plausible but treated the symptom* — reading the code
   myself showed the join is entirely unused and the correct fix is to remove
   it.
@@ -181,12 +181,20 @@ This is the working pattern that Issue #4 (rating notifications) was *missing* �
 
 ### Issue #3 — The same song keeps showing up twice in search
 
-- **How I reproduced it.** This one was subtle: `search_songs("Anthem")`
-  returned the multi-tag song **once**, and `test_search_no_duplicates_multi_tag_song`
-  passed. So the user-visible duplication did *not* reproduce on the current
-  stack. I dug into *why* rather than declaring it fixed. Querying the raw
-  joined rows (`db.session.query(Song.id).outerjoin(song_tags…)`) returned
-  **3 rows** for a 3-tag song, while the ORM entity query returned **1**.
+- **How I reproduced it.** This one was subtle, so I reproduced the *root-cause
+  fault directly* rather than relying on the API symptom. Querying the raw
+  joined rows the buggy code produces
+  (`db.session.query(Song.id, Song.title).outerjoin(song_tags…)`) returned
+  **3 identical rows** for the 3-tag song "Crown Heights Anthem" — exactly
+  simone's "showed up three times." The full-entity form
+  (`db.session.query(Song).outerjoin(song_tags…).all()`) returned **1**, and
+  `test_search_no_duplicates_multi_tag_song` passed. So the fault is real and
+  provable at the SQL level; the API symptom is masked *only* by SQLAlchemy's
+  legacy-`Query` entity uniquing (dedup by primary key on `.all()` for
+  full-entity queries), which is itself fragile — it evaporates the moment the
+  query selects columns, uses `.count()`, or moves to 2.0-style
+  `session.execute(select(...))` (no auto-uniquing). I treated "3 raw rows for a
+  1-song match" as the reproduction and the masking as part of the diagnosis.
 - **How I found the root cause.** `GET /songs/search` →
   `search_service.search_songs`. The query does
   `.outerjoin(song_tags, Song.id == song_tags.c.song_id)` but filters only on
@@ -196,11 +204,11 @@ This is the working pattern that Issue #4 (rating notifications) was *missing* �
   rows by a song's tag count (3 tags → 3 rows) while contributing nothing to
   the filter — tags are already loaded via the `Song.tags` relationship inside
   `to_dict()`. The reason it doesn't *currently* show duplicates is that
-  **SQLAlchemy 2.0's ORM deduplicates full entities by primary key on
+  **SQLAlchemy's legacy `Query` API uniquifies full entities by primary key on
   `.all()`**, collapsing the 3 rows back to 1. The bug is real and latent: the
   moment the query selects columns instead of entities, uses `.count()`, or
-  runs under a config with uniquing disabled, the duplicates surface exactly as
-  reported.
+  moves to 2.0-style `session.execute(select(...))` (which does *not*
+  auto-uniquify), the duplicates surface exactly as reported.
 - **My fix + side-effect check.** Removed the unused `outerjoin` (and the now-
   unused `Tag`/`song_tags` imports) so the query returns one row per matching
   song at the SQL level. I confirmed raw rows dropped from 3 → 1 and that the

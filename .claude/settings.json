@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/bin/python -m pytest -q)",
+      "Bash(.venv/bin/python -)",
+      "Bash(.venv/bin/python seed_data.py)",
+      "Bash(FLASK_APP=app:create_app .venv/bin/flask run --host=127.0.0.1 --port=5000)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://127.0.0.1:5000/songs/search?q=Anthem)",
+      "Bash(lsof -nP -iTCP:5000 -sTCP:LISTEN)",
+      "Bash(ps -o pid,ppid,command -p 43389)",
+      "Bash(.venv/bin/python --version)",
+      "Bash(kill 43389)",
+      "Bash(FLASK_APP=app:create_app .venv/bin/python -m flask run --host=127.0.0.1 --port=5000)"
+    ]
+  }
+}

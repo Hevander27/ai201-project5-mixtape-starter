@@ -31,11 +31,13 @@ def create_app(config=None):
     from routes.playlists import playlists_bp
     from routes.users import users_bp
     from routes.feed import feed_bp
+    from routes.ui import ui_bp  # demo dashboard (not part of the graded API)
 
     app.register_blueprint(songs_bp, url_prefix="/songs")
     app.register_blueprint(playlists_bp, url_prefix="/playlists")
     app.register_blueprint(users_bp, url_prefix="/users")
     app.register_blueprint(feed_bp, url_prefix="/feed")
+    app.register_blueprint(ui_bp)
 
     with app.app_context():
         db.create_all()
