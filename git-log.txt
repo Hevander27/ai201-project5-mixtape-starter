@@ -1,0 +1,6 @@
+61e81a0 test: add regression tests for rating notifications and feed boundary
+5d9709a fix: remove tag join that duplicated songs in search results
+ff11b6e fix: create a notification when a song is rated
+8878efa fix: return all playlist songs including the most recently added
+87d4479 fix: scope Friends Listening Now to the current calendar day
+7ea91ea fix: allow streak to increment on Sundays
