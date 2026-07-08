@@ -5,6 +5,8 @@ A social music app where friends share songs, build collaborative playlists, and
 This is the starter repo for **Project 5: Mixtape Bug Hunt**. The app has five open issues in its tracker. Your job is to find, fix, and document at least three of them.
 
 ---
+<img width="1717" height="932" alt="Screenshot 2026-07-08 at 2 54 45 AM" src="https://github.com/user-attachments/assets/14cd7dda-8d18-464a-8215-c69bf8974a0d" />
+
 
 ## App Structure
 
